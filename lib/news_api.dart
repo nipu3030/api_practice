@@ -3,11 +3,17 @@ import 'package:api_492/models/news_model.dart';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 
-class NewsApi extends StatelessWidget {
+class NewsApi extends StatefulWidget {
+  @override
+  State<NewsApi> createState() => _NewsApiState();
+}
+
+class _NewsApiState extends State<NewsApi> {
+   var searchKeyword = TextEditingController();
 
   Future<List<ArticleModel>> fetchAllNews() async {
-    // String url = "https://newsapi.org/v2/top-headlines?country=us&apiKey=b9e0b4549daa417caff6427e13161ab6";
-    String url = "https://newsapi.org/v2/everything?q=bitcoin&apiKey=b9e0b4549daa417caff6427e13161ab6";
+    bool query = searchKeyword.text.isNotEmpty;
+    String url = query  ?    "https://newsapi.org/v2/everything?q=${searchKeyword.text}&apiKey=b9e0b4549daa417caff6427e13161ab6" : "https://newsapi.org/v2/top-headlines?country=us&apiKey=b9e0b4549daa417caff6427e13161ab6";
     var response = await http.get(Uri.parse(url));
     if (response.statusCode == 200) {
       var data = jsonDecode(response.body);
@@ -29,7 +35,7 @@ class NewsApi extends StatelessWidget {
   Widget build(context) {
     return Scaffold(
       appBar: AppBar(title: Text("News App"),),
-      body: FutureBuilder(future: fetchAllNews(),
+      body: FutureBuilder<List<ArticleModel>>(future: fetchAllNews(),
           builder: (_, snap) {
             if (snap.connectionState == ConnectionState.waiting) {
               return Center(child: CircularProgressIndicator.adaptive(),);
@@ -41,54 +47,79 @@ class NewsApi extends StatelessWidget {
 
             if (snap.hasData && snap.data != null) {
               var allArticle = snap.data!;
-              return allArticle.isNotEmpty ? ListView.builder(
-                itemCount: allArticle.length,
-                itemBuilder: (_, index) {
-                  var eachArticle = allArticle[index];
-                  return Padding(
-                    padding: const EdgeInsets.all(8.0),
-                    child: InkWell(
-                      onTap: () {
-                        Navigator.push(context, MaterialPageRoute(
-                            builder: (_) =>
-                                DetailsPage(image: eachArticle.urlToImage,
-                                    title: eachArticle.title,
-                                    description: eachArticle.description,
-                                   content: eachArticle.content,
-                                  author: eachArticle.author,
-                                  publishedAt: eachArticle.publishedAt,
-                                )));
-                      },
-                      child: Card(
-                        color: Colors.white,
-                        elevation: 1,
-                        child: Column(
-                          children: [
-                            Container(
-                              margin: EdgeInsets.all(8),
-                              height: 200,
-                              width: double.infinity,
-                              decoration: BoxDecoration(
-                                  borderRadius: BorderRadius.circular(11),
-                                  image: DecorationImage(image: NetworkImage(
-                                      eachArticle.urlToImage ?? ""),
-                                      fit: BoxFit.cover)
-                              ),
-                            ),
-                            SizedBox(height: 5,),
-                            ListTile(
-                              title: Text(eachArticle.title ?? "",
-                                style: TextStyle(fontWeight: FontWeight.bold,
-                                    overflow: TextOverflow.ellipsis),
-                                maxLines: 2,),
-                              subtitle: Text(eachArticle.description ?? ""),
-                            )
-                          ],
+              return allArticle.isNotEmpty ? Padding(
+                padding: const EdgeInsets.all(8.0),
+                child: Column(
+                  children: [
+                    TextField(
+                      controller:  searchKeyword,
+                      decoration: InputDecoration(
+                        border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(21),
                         ),
+                        hintText: 'Search News'
                       ),
                     ),
-                  );
-                },
+                    SizedBox(height: 10,),
+                    ElevatedButton(
+                        onPressed: ()=> setState(() {}),
+                        child: Text("Search"),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: Colors.red,
+                        foregroundColor: Colors.white
+                      ),
+                    ),
+                    SizedBox(height: 10,),
+                    Expanded(
+                      child: ListView.builder(
+                        itemCount: allArticle.length,
+                        itemBuilder: (_, index) {
+                          var eachArticle = allArticle[index];
+                          return InkWell(
+                            onTap: () {
+                              Navigator.push(context, MaterialPageRoute(
+                                  builder: (_) =>
+                                      DetailsPage(image: eachArticle.urlToImage,
+                                          title: eachArticle.title,
+                                          description: eachArticle.description,
+                                         content: eachArticle.content,
+                                        author: eachArticle.author,
+                                        publishedAt: eachArticle.publishedAt,
+                                      )));
+                            },
+                            child: Card(
+                              color: Colors.white,
+                              elevation: 1,
+                              child: Column(
+                                children: [
+                                  Container(
+                                    margin: EdgeInsets.all(8),
+                                    height: 200,
+                                    width: double.infinity,
+                                    decoration: BoxDecoration(
+                                        borderRadius: BorderRadius.circular(11),
+                                        image: DecorationImage(image: NetworkImage(
+                                            eachArticle.urlToImage ?? ""),
+                                            fit: BoxFit.cover)
+                                    ),
+                                  ),
+                                  SizedBox(height: 5,),
+                                  ListTile(
+                                    title: Text(eachArticle.title ?? "",
+                                      style: TextStyle(fontWeight: FontWeight.bold,
+                                          overflow: TextOverflow.ellipsis),
+                                      maxLines: 2,),
+                                    subtitle: Text(eachArticle.description ?? ""),
+                                  )
+                                ],
+                              ),
+                            ),
+                          );
+                        },
+                      ),
+                    ),
+                  ],
+                ),
               ) : Center(child: Text("No Article Found!"),);
             }
             return Container();
@@ -134,8 +165,8 @@ class DetailsPage extends StatelessWidget {
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                Text("Author - ${author!}",style: TextStyle(color: Colors.black,fontWeight: FontWeight.bold,fontStyle: FontStyle.italic),),
-                Text(publishedAt!)
+                Expanded(child: Text("Author - ${author!}",style: TextStyle(color: Colors.black,fontWeight: FontWeight.bold,fontStyle: FontStyle.italic),)),
+                Expanded(child: Text(publishedAt!))
               ],
             ),
             SizedBox(height: 10,),
